@@ -10,6 +10,7 @@ import type {
   AppSnapshot,
   AssignmentTemplate,
   Campus,
+  Church,
   Contact,
   ContactInput,
   ContactStatusUpdate,
@@ -19,6 +20,7 @@ import type {
   PlanUpdateInput,
   ReportDigest,
   SessionInfo,
+  SignupPayload,
   SmtpSettings,
   SmtpSettingsInput,
   SubscriptionPlan,
@@ -26,7 +28,9 @@ import type {
   TaskInput,
   TaskStatus,
   TaskStatusUpdateInput,
-  UserAccount
+  UserAccount,
+  UserCredential,
+  UserRole
 } from '@shared/types';
 
 type SyncBundle = {
@@ -96,6 +100,83 @@ export class DataStore {
 
   public logout(token: string) {
     this.sessions.delete(token);
+  }
+
+  public signup(payload: SignupPayload): SessionInfo | null {
+    // Check if email already exists
+    const existingUser = this.data.users.find((user) => user.email === payload.email);
+    if (existingUser) {
+      return null; // Email already registered
+    }
+
+    // Ensure plans exist (seed if needed)
+    if (this.data.plans.length === 0) {
+      this.data.plans = seedPlans();
+    }
+
+    const timestamp = nowIso();
+    const churchId = randomUUID();
+    const userId = randomUUID();
+    const campusId = randomUUID();
+    const plans = this.data.plans;
+
+    // Create default campus
+    const campus: Campus = {
+      id: campusId,
+      churchId,
+      name: 'Main Campus',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      primary: true
+    };
+
+    // Create church
+    const church: Church = {
+      id: churchId,
+      name: payload.churchName.trim(),
+      brandTagline: 'Never let an ember go cold.',
+      planId: plans[0]?.id ?? plans[1]?.id ?? 'plan-lite', // Use first available plan
+      digestPreference: { dayOfWeek: 1, time: '08:00' },
+      emailAlerts: false,
+      audibleAlerts: true,
+      campuses: [campus],
+      primaryCampusId: campusId
+    };
+
+    // Create user (director role for signup)
+    const avatarColors = ['#2563eb', '#22c55e', '#f97316', '#8b5cf6', '#ec4899', '#14b8a6'];
+    const avatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+
+    const user: UserAccount = {
+      id: userId,
+      churchId,
+      name: payload.name.trim(),
+      email: payload.email.trim(),
+      phone: payload.phone?.trim(),
+      role: 'director' as UserRole,
+      avatarColor,
+      active: true
+    };
+
+    // Create credential
+    const credential: UserCredential = {
+      userId,
+      passwordHash: hashSync(payload.password, 10)
+    };
+
+    // Add to data
+    this.data.churches.push(church);
+    this.data.campuses.push(campus);
+    this.data.users.push(user);
+    this.data.credentials.push(credential);
+
+    // Persist changes
+    this.persist();
+
+    // Create session
+    const token = randomUUID();
+    this.sessions.set(token, userId);
+
+    return { token, user, church };
   }
 
   public createContact(payload: ContactInput): Contact {

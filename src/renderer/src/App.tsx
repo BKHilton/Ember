@@ -9,6 +9,7 @@ import type {
   LoginPayload,
   NotificationPayload,
   SessionInfo,
+  SignupPayload,
   SubscriptionPlan,
   SmtpSettingsInput,
   TaskCategory,
@@ -80,6 +81,14 @@ const App = () => {
   });
   const [templates, setTemplates] = useState<AssignmentTemplate[]>([]);
   const [loginForm, setLoginForm] = useState<LoginPayload>({ email: '', password: '' });
+  const [signupForm, setSignupForm] = useState<SignupPayload>({
+    email: '',
+    password: '',
+    name: '',
+    churchName: '',
+    phone: ''
+  });
+  const [isSignup, setIsSignup] = useState(false);
   const [selectedAlpha, setSelectedAlpha] = useState(alphaSegments[0].id);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>();
   const [selectedCampusId, setSelectedCampusId] = useState<string>('all');
@@ -112,6 +121,12 @@ const App = () => {
   }, [session]);
 
   useEffect(() => {
+    if (!window.api) {
+      console.error('window.api is not available. Preload script may not have loaded.');
+      setLoading(false);
+      return;
+    }
+
     const savedToken = localStorage.getItem('followup-token');
     if (savedToken) {
       window.api
@@ -122,6 +137,9 @@ const App = () => {
           } else {
             localStorage.removeItem('followup-token');
           }
+        })
+        .catch((error) => {
+          console.error('Error getting session:', error);
         })
         .finally(() => setLoading(false));
     } else {
@@ -163,6 +181,19 @@ const App = () => {
     setLoginForm({ email: '', password: '' });
   };
 
+  const handleSignup = async (event: FormEvent) => {
+    event.preventDefault();
+    setError('');
+    const result = await window.api.signup(signupForm);
+    if (!result) {
+      setError('Email already registered or signup failed.');
+      return;
+    }
+    localStorage.setItem('followup-token', result.token);
+    setSession(result);
+    setSignupForm({ email: '', password: '', name: '', churchName: '', phone: '' });
+  };
+
   const handleLogout = async () => {
     const token = localStorage.getItem('followup-token');
     if (token) {
@@ -183,7 +214,7 @@ const App = () => {
   );
   const campuses = church?.campuses ?? [];
   const planOptions = snapshot?.plans ?? [];
-  const canManageBilling = session.user.role === 'director' || session.user.role === 'administrator';
+  const canManageBilling = session?.user.role === 'director' || session?.user.role === 'administrator';
   const tagline = church?.brandTagline ?? 'Never let an ember go cold.';
   const campusLookup = useMemo(
     () => new Map(campuses.map((campus) => [campus.id, campus.name])),
@@ -508,30 +539,93 @@ const App = () => {
   if (!session) {
     return (
       <div className="auth-shell">
-        <form className="auth-card" onSubmit={handleLogin}>
+        <form className="auth-card" onSubmit={isSignup ? handleSignup : handleLogin}>
           <EmberLogo />
           <p className="tagline-small">Never let an ember go cold.</p>
-          <label>
-            Email
-            <input
-              type="email"
-              value={loginForm.email}
-              onChange={(event) => setLoginForm((prev) => ({ ...prev, email: event.target.value }))}
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={loginForm.password}
-              onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
-              required
-            />
-          </label>
+          {isSignup ? (
+            <>
+              <label>
+                Your name
+                <input
+                  type="text"
+                  value={signupForm.name}
+                  onChange={(event) => setSignupForm((prev) => ({ ...prev, name: event.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Church name
+                <input
+                  type="text"
+                  value={signupForm.churchName}
+                  onChange={(event) => setSignupForm((prev) => ({ ...prev, churchName: event.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={signupForm.email}
+                  onChange={(event) => setSignupForm((prev) => ({ ...prev, email: event.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Phone (optional)
+                <input
+                  type="tel"
+                  value={signupForm.phone}
+                  onChange={(event) => setSignupForm((prev) => ({ ...prev, phone: event.target.value }))}
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={signupForm.password}
+                  onChange={(event) => setSignupForm((prev) => ({ ...prev, password: event.target.value }))}
+                  required
+                  minLength={6}
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(event) => setLoginForm((prev) => ({ ...prev, email: event.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
+                  required
+                />
+              </label>
+            </>
+          )}
           {error && <p className="error">{error}</p>}
           <button type="submit" className="primary">
-            Enter Console
+            {isSignup ? 'Create Account' : 'Enter Console'}
+          </button>
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setIsSignup(!isSignup);
+              setError('');
+            }}
+            style={{ marginTop: '12px', fontSize: '0.9rem' }}
+          >
+            {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
           </button>
         </form>
       </div>

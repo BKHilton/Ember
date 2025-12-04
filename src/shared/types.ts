@@ -271,6 +271,14 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface SignupPayload {
+  email: string;
+  password: string;
+  name: string;
+  churchName: string;
+  phone?: string;
+}
+
 export interface SessionInfo {
   token: string;
   user: UserAccount;

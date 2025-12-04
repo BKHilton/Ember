@@ -2,6 +2,7 @@ export const IPC_CHANNELS = {
   SNAPSHOT: 'app:get-snapshot',
   SESSION: 'auth:get-session',
   LOGIN: 'auth:login',
+  SIGNUP: 'auth:signup',
   LOGOUT: 'auth:logout',
   CONTACT_CREATE: 'contacts:create',
   CONTACT_STATUS: 'contacts:update-status',

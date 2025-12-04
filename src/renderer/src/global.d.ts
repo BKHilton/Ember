@@ -12,6 +12,7 @@ import type {
   PlanUpdateInput,
   ReportDigest,
   SessionInfo,
+  SignupPayload,
   SmtpSettingsInput,
   SyncImportResult,
   TaskInput,
@@ -24,6 +25,7 @@ declare global {
       getSnapshot(): Promise<AppSnapshot>;
       getSession(token?: string): Promise<SessionInfo | null>;
       login(payload: LoginPayload): Promise<SessionInfo | null>;
+      signup(payload: SignupPayload): Promise<SessionInfo | null>;
       logout(token: string): Promise<void>;
       createContact(payload: ContactInput): Promise<Contact>;
       updateContactStatus(payload: ContactStatusUpdate): Promise<Contact | undefined>;

@@ -14,6 +14,7 @@ import type {
   PlanUpdateInput,
   ReportDigest,
   SessionInfo,
+  SignupPayload,
   SmtpSettingsInput,
   SyncImportResult,
   TaskInput,
@@ -26,6 +27,8 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SESSION, token),
   login: (payload: LoginPayload): Promise<SessionInfo | null> =>
     ipcRenderer.invoke(IPC_CHANNELS.LOGIN, payload),
+  signup: (payload: SignupPayload): Promise<SessionInfo | null> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SIGNUP, payload),
   logout: (token: string) => ipcRenderer.invoke(IPC_CHANNELS.LOGOUT, token),
   createContact: (payload: ContactInput): Promise<Contact> =>
     ipcRenderer.invoke(IPC_CHANNELS.CONTACT_CREATE, payload),
@@ -67,6 +70,8 @@ const api = {
 };
 
 contextBridge.exposeInMainWorld('api', api);
+
+console.log('Preload script loaded, window.api exposed');
 
 declare global {
   interface Window {

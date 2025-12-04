@@ -11,6 +11,7 @@ import type {
   LoginPayload,
   NotificationPayload,
   PlanUpdateInput,
+  SignupPayload,
   SmtpSettingsInput,
   SessionInfo,
   SyncImportResult,
@@ -40,6 +41,10 @@ export const registerIpcHandlers = (
 
   ipcMain.handle(IPC_CHANNELS.LOGIN, (_event, payload: LoginPayload): SessionInfo | null =>
     store.authenticate(payload)
+  );
+
+  ipcMain.handle(IPC_CHANNELS.SIGNUP, (_event, payload: SignupPayload): SessionInfo | null =>
+    store.signup(payload)
   );
 
   ipcMain.handle(IPC_CHANNELS.LOGOUT, (_event, token: string) => store.logout(token));
